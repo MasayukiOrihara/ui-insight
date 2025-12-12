@@ -11,6 +11,13 @@ const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 // edgeだとFormData/Buffer周りが面倒なことがある
 export const runtime = "nodejs";
 
+function stripJsonFence(s: string) {
+  return s
+    .replace(/^```json\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+}
+
 /**
  * 画像を受け取ってUI分析を行うAPIエンドポイント
  * @param req
@@ -33,8 +40,8 @@ export async function POST(req: Request) {
     const base64 = Buffer.from(arrayBuffer).toString("base64");
     const mime = file.type || "image/png";
 
-    // const prompt = ANALYZE_PROMPT.trim();
-    const prompt = UI_ANALYZE_PROMPT.trim();
+    const prompt = ANALYZE_PROMPT.trim();
+    // const prompt = UI_ANALYZE_PROMPT.trim();
     console.log("2. データ準備完了 !");
 
     console.log("3. LLM で処理を行います...");
@@ -57,10 +64,11 @@ export async function POST(req: Request) {
     console.log("4. 処理完了 !");
 
     const text = res.output_text; // 返ってきたテキスト（JSONのはず）
+    const json = stripJsonFence(text);
 
     console.log("5. 分析完了 !");
-    console.log("text: \n" + text);
-    return new Response(text, {
+    console.log("text: \n" + json);
+    return new Response(json, {
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   } catch (error: any) {
